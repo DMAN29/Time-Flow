@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -37,7 +38,6 @@ public class OrderService {
 	public Order createOrder(Order order) throws OrderException {
 		if(orderRepo.findByStyleNo(order.getStyleNo()).isEmpty()){
 			order.setCreatedAt(LocalDateTime.now());
-			order.setDesignOutput(Math.round(order.getEfficiency()*0.01*order.getTarget()));
 			return orderRepo.save(order);
 		}
 		throw new OrderException("Order already exist with Style No: " +order.getStyleNo());
@@ -70,17 +70,27 @@ public class OrderService {
 	    List<Operation> operations = new ArrayList<>();
 	    InputStream inputStream = file.getInputStream();
 	    Workbook workbook = new XSSFWorkbook(inputStream);
-	    Sheet sheet = workbook.getSheetAt(0); // Read the first sheet
+	    Sheet sheet = workbook.getSheetAt(1); // Read the first sheet
 
 	    String sectionCellValue = "";
 	    int index = 0;
 	    double totalSam = 0;
 	    double totalAllocation = 0;
 	    double totalRequired = 0;
-	    Map<String, Double> update = new HashMap<>();
+	    int totalRows = sheet.getPhysicalNumberOfRows();
+	    int designedOutput = Integer.MAX_VALUE;
+	    boolean nextSafe = false;
+	    for (int i = 3; i < totalRows - 1; i++) { // Start from row index 3 to skip headers
+	        Row row = sheet.getRow(i);
+	        Row next = sheet.getRow(i + 1);
+	        if (row == null) {
+	            break; // Stop when encountering an empty row
+	        }
 
-	    for (Row row : sheet) {
-	        if (row.getRowNum() < 3) continue; // Skip header rows
+	        Cell firstCell = row.getCell(0);
+	        if (firstCell == null || firstCell.getCellType() == CellType.BLANK) {
+	            break; // Stop when an empty row is encountered
+	        }
 
 	        Operation operation = new Operation();
 	        operation.setId(++index);
@@ -90,10 +100,15 @@ public class OrderService {
 	        Cell samCell = row.getCell(3);           // Column D
 	        Cell machineTypeCell = row.getCell(4);   // Column E
 
+	        Cell nextSection = next.getCell(2);
+	        String nextSectionValue = "";
+	        Cell nextSam = next.getCell(3);
+	        Cell nextMachineType = next.getCell(4);
+
 	        if (operationNameCell != null) {
 	            operation.setOperationName(operationNameCell.getStringCellValue().trim());
 	        }
-	        if (sectionCell != null) {
+	        if (sectionCell != null && !sectionCell.getStringCellValue().trim().isEmpty()) {
 	            sectionCellValue = sectionCell.getStringCellValue().trim();
 	        }
 	        operation.setSection(sectionCellValue);
@@ -106,46 +121,50 @@ public class OrderService {
 	        }
 
 	        // **Calculate Required with precision (rounded to 2 decimal places)**
+	        double nextSamValue = nextSam.getNumericCellValue();
 	        double required = roundToTwo((order.getTarget() * operation.getSam()) / 480);
+	        double nextRequired = roundToTwo((order.getTarget() * nextSamValue) / 480);
 	        operation.setRequired(required);
 
 	        // **Compute Allocated (Round up to nearest 0.5)**
 	        double allocated = Math.ceil(required * 2) / 2;
+	        double nextAllocated = Math.ceil(nextRequired * 2) / 2;
 	        operation.setAllocated(allocated);
 
 	        // **Set Target Calculation**
 	        if (operation.getSam() > 0) {
-	            operation.setTarget((long) Math.round((480 * allocated * 0.01 * order.getEfficiency()) / operation.getSam()));
+	            operation.setTarget((int)Math.round((480 * allocated * 0.01 * order.getEfficiency()) / operation.getSam()));
 	        }
-
-	        // **Manage allocation updates per section-machine**
-	        String secMachine = operation.getSection() + "-" + operation.getMachineType();
-	        update.merge(secMachine, allocated % 1, (oldValue, newValue) -> (oldValue + allocated) % 1);
+	        if (nextSection != null && !nextSection.getStringCellValue().trim().isEmpty()) {
+	            nextSectionValue = nextSection.getStringCellValue().trim();
+	        }
+	        nextSectionValue=sectionCellValue;
+	        if (!nextSafe && nextSectionValue.equals(sectionCellValue) && machineTypeCell.getStringCellValue().trim().equals(nextMachineType.getStringCellValue().trim()) && allocated % 1 == 0.5 && nextAllocated % 1 == 0.5) {
+	            nextSafe = true;
+	        } else {
+	            if(!nextSafe && allocated%1==0.5) {
+	            	allocated+=0.5;
+	            }
+	            nextSafe = false;
+	        }
+	        operation.setAllocated(allocated);
 
 	        totalSam += operation.getSam();
 	        totalRequired += required;
+	        totalAllocation += operation.getAllocated();
+	        designedOutput = Math.min(operation.getTarget(), designedOutput);
 	        operations.add(operation);
-	    }
-
-	    // **Adjust Allocations**
-	    for (int i = operations.size() - 1; i >= 0; i--) {
-	        String secMachine = operations.get(i).getSection() + "-" + operations.get(i).getMachineType();
-	        if (update.getOrDefault(secMachine, 0.0) == 0.5) {
-	            operations.get(i).setAllocated(operations.get(i).getAllocated() + 0.5);
-	            update.remove(secMachine);
-	        }
-	        totalAllocation += operations.get(i).getAllocated();
 	    }
 
 	    workbook.close();
 
 	    // **Set Order Details**
 	    order.setTotalAllocation(totalAllocation);
-	    order.setTotalSam(totalSam);
+	    order.setTotalSam(roundToTwo(totalSam));
 	    order.setTotalRequired(roundToTwo(totalRequired));
-
+	    order.setDesignOutput(designedOutput);
 	    if (totalAllocation > 0) {
-	        order.setLineDesign((int)Math.round((order.getDesignOutput() * totalSam) / (totalAllocation * 480) * 100.0));
+	        order.setLineDesign((int) Math.round((order.getDesignOutput() * totalSam) / (totalAllocation * 480) * 100.0));
 	    } else {
 	        order.setLineDesign(0);
 	    }

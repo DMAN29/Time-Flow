@@ -25,10 +25,10 @@ public class Order {
 	private String division;
 	private String buyer;
 	private Long orderQuantity;
-	private Long target; // 1000
+	private Integer target; // 1000
 	private Integer lineDesign;
 	private Double efficiency; // 80
-	private Long designOutput;// 800
+	private Integer designOutput;// 800
 	private Double totalSam;
 	private Double totalAllocation;
 	private Double totalRequired;

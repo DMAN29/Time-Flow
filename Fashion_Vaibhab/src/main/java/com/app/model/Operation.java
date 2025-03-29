@@ -16,7 +16,7 @@ public class Operation {
 	private String machineType;
 	private Double required;
 	private Double allocated;
-	private Long target;
+	private Integer target;
 //	private Long skillMatrix;
 	
 	
