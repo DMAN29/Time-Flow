@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.app.exception.CompanyException;
 import com.app.exception.UserException;
 import com.app.model.Role;
 import com.app.model.User;
@@ -49,21 +50,28 @@ public class UserService {
 	    user.setPassword(encoder.encode(user.getPassword()));
 	    List<Role> roles = new ArrayList<>();
 //	    roles.add(Role.ROLE_USER);
-//	    user.setRole(roles);
+	    user.setRole(roles);	
 	    user.setCreatedAt(LocalDateTime.now());
 	    userRepo.save(user);
 	}
 
-	
+
+
 	public List<User> getAllUsers(String token) throws UserException {
 	    User user = findUserProfileByJwt(token);
-	    
-	    if (user.getRole().contains(Role.ROLE_ADMIN) || user.getRole().contains(Role.ROLE_HEAD)) {            
+
+	    if (user.getRole().contains(Role.ROLE_HEAD)) {
 	        return userRepo.findAll();
+	    } else if (user.getRole().contains(Role.ROLE_ADMIN)) {
+	        if (user.getCompany() == null || user.getCompany().trim().isEmpty()) {
+	            throw new UserException("You don't have a company, so you can't access this resource");
+	        }
+	        return userRepo.findByCompany(user.getCompany());
 	    }
-	    
+
 	    throw new UserException("Only Admins and Heads can access this data");
 	}
+
 
 	public User getUserById(String id) throws UserException {
 		Optional<User> user = userRepo.findAllById(id);
@@ -85,7 +93,6 @@ public class UserService {
 	    User currentUser = findUserProfileByJwt(token);
 	    User targetUser = getUserByEmail(email);
 
-	    // 🚫 Never allow changes to HEAD user
 	    if (targetUser.getRole().contains(Role.ROLE_HEAD)) {
 	        throw new UserException("Cannot change role of HEAD user");
 	    }
@@ -93,32 +100,53 @@ public class UserService {
 	    boolean isAdmin = currentUser.getRole().contains(Role.ROLE_ADMIN);
 	    boolean isHead = currentUser.getRole().contains(Role.ROLE_HEAD);
 
+	    // ❌ Neither Admin nor Head
 	    if (!isAdmin && !isHead) {
 	        throw new UserException("Only ADMIN or HEAD can change roles");
 	    }
 
-	    // 🚫 Admin cannot update another Admin
-	    if (isAdmin && targetUser.getRole().contains(Role.ROLE_ADMIN)) {
-	        throw new UserException("Admin cannot change another Admin's role");
+	    // ❌ Head cannot change own role
+	    if (isHead && currentUser.getEmail().equalsIgnoreCase(email)) {
+	        throw new UserException("HEAD cannot change their own role");
 	    }
 
-	    // 🚫 Admin cannot assign HEAD role
-	    if (isAdmin && newRole == Role.ROLE_HEAD) {
-	        throw new UserException("Admin cannot assign HEAD role");
+	    // ✅ HEAD can change anyone (except HEADs)
+	    if (isHead) {
+	        targetUser.getRole().clear();
+	        targetUser.getRole().add(newRole);
+	        if (newRole == Role.ROLE_ADMIN) {
+	            targetUser.getRole().add(Role.ROLE_USER); // Admin inherits USER
+	        }
+	        userRepo.save(targetUser);
+	        return;
 	    }
 
-	    // ✅ Head can change anyone (except existing HEADs, handled above)
-	    // ✅ Admin can promote USER to ADMIN
-	    targetUser.getRole().clear();
-	    targetUser.getRole().add(newRole);
+	    // ✅ ADMIN logic
+	    if (isAdmin) {
+	        boolean isTargetAdmin = targetUser.getRole().contains(Role.ROLE_ADMIN);
+	        boolean isTargetHead = targetUser.getRole().contains(Role.ROLE_HEAD);
 
-	    // Nested behavior
-	    if (newRole == Role.ROLE_ADMIN) {
-	        targetUser.getRole().add(Role.ROLE_USER); // Admin also gets USER role
+	        // ❌ Admin cannot change HEAD or another ADMIN
+	        if (isTargetAdmin || isTargetHead) {
+	            throw new UserException("Admin cannot change role of Admin or Head");
+	        }
+
+	        // ❌ Admin cannot assign HEAD
+	        if (newRole == Role.ROLE_HEAD) {
+	            throw new UserException("Admin cannot assign HEAD role");
+	        }
+
+	        // ✅ Can change users with no role or ROLE_USER
+	        targetUser.getRole().clear();
+	        targetUser.getRole().add(newRole);
+	        if (newRole == Role.ROLE_ADMIN) {
+	            targetUser.getRole().add(Role.ROLE_USER);
+	        }
+
+	        userRepo.save(targetUser);
 	    }
-
-	    userRepo.save(targetUser);
 	}
+
 
 
 
@@ -165,6 +193,11 @@ public class UserService {
 		}
 		return user.get();
 	}
+
+	public boolean companyHasUsers(String companyName) {
+	    return userRepo.existsByCompany(companyName);
+	}
+	
 	
 	
 

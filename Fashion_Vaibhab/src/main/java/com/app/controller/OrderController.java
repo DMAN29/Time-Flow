@@ -43,18 +43,14 @@ public class OrderController {
 	    @RequestPart("order") Order order,
 	    @RequestPart("file") MultipartFile file
 	) throws OrderException, UserException, IOException {
-		System.out.println("Incoming Order: " + order);
-        System.out.println("Incoming File: " + file.getOriginalFilename());
-        System.out.println("Authorization Token: " + jwt);
-        
 	    return new ResponseEntity<>(orderService.createOrder(order, file, jwt), HttpStatus.CREATED);
 	}
 
 
 	
 	@GetMapping("")
-	public ResponseEntity<List<Order>> getAllOrder(){
-		return new ResponseEntity<>(orderService.getAllorder(),HttpStatus.OK);
+	public ResponseEntity<List<Order>> getAllOrder(@RequestHeader("Authorization")String token) throws UserException{
+		return new ResponseEntity<>(orderService.getAllorder(token),HttpStatus.OK);
 	}
 	
 	@GetMapping("/style/{styleNo}")

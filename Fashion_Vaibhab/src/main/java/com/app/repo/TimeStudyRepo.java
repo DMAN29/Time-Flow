@@ -17,4 +17,6 @@ public interface TimeStudyRepo extends MongoRepository<TimeStudy, String>{
     boolean existsByStyleNoAndOperatorId(String styleNo, String operatorId);
 
 	Optional<List<TimeStudy>> findByStyleNo(String styleNo);
+	
+	void deleteByStyleNo(String styleNo);
 }

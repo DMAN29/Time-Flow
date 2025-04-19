@@ -1,5 +1,6 @@
 package com.app.repo;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -15,6 +16,8 @@ public interface OrderRepo extends MongoRepository<Order, String>{
 	Optional<Order> findByItemNo(String itemNo);
 
 	void deleteByStyleNo(String styleNo);
+
+	List<Order> findByCompany(String company);
 
 
 }

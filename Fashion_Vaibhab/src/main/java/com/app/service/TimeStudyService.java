@@ -118,4 +118,10 @@ public class TimeStudyService {
 	    saveStudy(study); // re-use internal logic
 	}
 
+
+	public void deleteByStyleNo(String styleNo) {
+		timeStudyRepo.deleteByStyleNo(styleNo);
+		
+	}
+
 }

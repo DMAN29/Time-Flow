@@ -1,5 +1,6 @@
 package com.app.repo;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -13,5 +14,9 @@ public interface UserRepo extends MongoRepository<User, String>{
 	Optional<User> findByEmail(String email);
 
 	Optional<User> findAllById(String id);
+
+	List<User> findByCompany(String company);
+
+	boolean existsByCompany(String name);
 
 }

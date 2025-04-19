@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.app.exception.CompanyException;
 import com.app.exception.UserException;
@@ -13,6 +14,7 @@ import com.app.model.Role;
 import com.app.model.User;
 import com.app.repo.CompanyRepo;
 
+@Service
 public class CompanyService {
 
 	@Autowired
@@ -29,8 +31,7 @@ public class CompanyService {
 				throw new CompanyException("Company already exitst with name :"+company.getName());
 			}
 			company.setCreatedAt(LocalDateTime.now());
-			company.setUpdatedAt(LocalDateTime.now());
-			companyRepo.save(company);
+			return 	companyRepo.save(company);
 		}
 		throw new UserException("You are not authorized to add companyies");
 	}
@@ -47,17 +48,22 @@ public class CompanyService {
 //		}
 //	}
 
-	public void deleteCompany(String id, String token) throws UserException, CompanyException {
+	public void deleteCompany(String name, String token) throws UserException, CompanyException {
 		User user = userService.findUserProfileByJwt(token);
 		if(user.getRole().contains(Role.ROLE_HEAD)) {
-			Optional<Company> existing = companyRepo.findById(id);
+			Optional<Company> existing = companyRepo.findByName(name);
 			if(existing.isPresent()) {
-				companyRepo.deleteById(id);
+				companyRepo.deleteById(existing.get().getId());
+				return;	
 			}
-			throw new CompanyException("company with id :"+id +" not exist");
+			throw new CompanyException("company with name :"+name +" not exist");
 		}		
 		throw new UserException("You are not authorized to delete company");
 		
+	}
+
+	public boolean companyHasUsers(String name) {
+		return userService.companyHasUsers(name);
 	}
 
 }

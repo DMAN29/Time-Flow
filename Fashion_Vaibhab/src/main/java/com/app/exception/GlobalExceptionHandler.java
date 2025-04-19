@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
 	}
 
 	
-	 @ExceptionHandler(Exception.class)
+	 @ExceptionHandler(CompanyException.class)
 	    public ResponseEntity<String> handelCompanyException(CompanyException ex) {
 	        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
 	 }
