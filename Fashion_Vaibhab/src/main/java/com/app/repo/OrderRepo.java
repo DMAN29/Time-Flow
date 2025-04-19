@@ -14,5 +14,7 @@ public interface OrderRepo extends MongoRepository<Order, String>{
 
 	Optional<Order> findByItemNo(String itemNo);
 
+	void deleteByStyleNo(String styleNo);
+
 
 }

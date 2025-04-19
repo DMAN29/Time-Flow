@@ -34,8 +34,10 @@ public class Order {
 	private Double totalRequired;
 	private List<Operation> operations;
 	private LocalDateTime createdAt;
-	private LocalDateTime deadLine;
+//	private LocalDateTime deadLine;
 	private Integer allowance = 0;
 	private Integer lane=0;
+	private Integer noOfLaps = 10;
+	private String createdBy;
 	
 }

@@ -1,6 +1,7 @@
 package com.app.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,9 +11,6 @@ import com.app.exception.OrderException;
 import com.app.exception.TimeStudyException;
 import com.app.model.TimeStudy;
 import com.app.repo.TimeStudyRepo;
-import com.app.request.LapsRequest;
-import com.app.request.OperatorRequest;
-import com.app.request.RemarkRequest;
 
 @Service
 public class TimeStudyService {
@@ -24,9 +22,9 @@ public class TimeStudyService {
     private OrderService orderService;
 
     public TimeStudy storeStudy(TimeStudy study) throws TimeStudyException, OrderException {
-        if (timeStudyRepo.existsByStyleNoAndOperatorId(study.getStyleNo(), study.getOperatorId())) {
-            throw new TimeStudyException("Time Study already exists for Style No: " + study.getStyleNo() + " and Operator Id: " + study.getOperatorId());
-        }
+//        if (timeStudyRepo.existsByStyleNoAndOperatorId(study.getStyleNo(), study.getOperatorId())) {
+//            throw new TimeStudyException("Time Study already exists for Style No: " + study.getStyleNo() + " and Operator Id: " + study.getOperatorId());
+//        }
         return saveStudy(study);
     }
 
@@ -35,9 +33,9 @@ public class TimeStudyService {
         return timeStudyRepo.findAll();
     }
 
-    public TimeStudy getStudyByOperatorId(OperatorRequest operator) throws TimeStudyException {
-        return timeStudyRepo.findByStyleNoAndOperatorId(operator.getStyleNo(),operator.getOperatorId())
-                .orElseThrow(() -> new TimeStudyException("Time Study not found for Operator Id: " + operator.getOperatorId() +" and Style no. "+operator.getStyleNo() ));
+    public List<TimeStudy> getStudyByOperatorId(String operatorId, String styleNo) throws TimeStudyException {
+        return timeStudyRepo.findByStyleNoAndOperatorId(styleNo,operatorId)
+                .orElseThrow(() -> new TimeStudyException("Time Study not found for Operator Id: " + operatorId +" and Style no. "+styleNo ));
         }
 
 //    public List<TimeStudy> getStudyByOperatorId(String id) throws TimeStudyException {
@@ -48,17 +46,21 @@ public class TimeStudyService {
 //        return studies;
 //    }
 
-    public TimeStudy updateLap(LapsRequest laps) throws TimeStudyException, OrderException {
-        TimeStudy study = getStudyByOperatorId(laps.getOperator());
-        study.setLapsMS(laps.getLapsMS());
-        return saveStudy(study);
-    }
+    
+    // update using the id of the time study
+//    public TimeStudy updateLap(LapsRequest laps) throws TimeStudyException, OrderException {
+//        TimeStudy study = getStudyByOperatorId(laps.getOperatorId(),laps.getStyleNo());
+//        study.setLapsMS(laps.getLapsMS());
+//        return saveStudy(study);
+//    }
 
-    public String updateRemarks(RemarkRequest remarks) throws TimeStudyException {
-        TimeStudy study = getStudyByOperatorId(remarks.getOperator());
-        study.setRemarks(remarks.getRemarks());
+
+    // update using the id of the time study
+    public String updateRemarks(String id, String remarks) throws TimeStudyException {
+        TimeStudy study = getById(id);
+        study.setRemarks(remarks);
         timeStudyRepo.save(study);
-        return "Remarks successfully added for Operator Id: " + remarks.getOperator().getOperatorId() + " in Order Style no "+remarks.getOperator().getStyleNo();
+        return "Remarks successfully added for Operator Id: " + study.getOperatorId() + " in Order Style no "+remarks;
     }
 
     private TimeStudy saveStudy(TimeStudy study) throws OrderException {
@@ -86,4 +88,34 @@ public class TimeStudyService {
     private long calculateAverageTime(List<Long> lapsMS) {
         return (lapsMS == null || lapsMS.isEmpty()) ? 0 : lapsMS.stream().mapToLong(Long::longValue).sum() / lapsMS.size();
     }
+
+
+	public List<TimeStudy> getStudyByStyleNo(String styleNo) {
+		return timeStudyRepo.findByStyleNo(styleNo).get();
+	}
+
+ 
+	public void deleteById(String id) {
+		timeStudyRepo.deleteById(id);
+	}
+
+	public TimeStudy getById(String id) throws TimeStudyException {
+		Optional<TimeStudy> response = timeStudyRepo.findById(id);
+		if(response.isEmpty()) {
+			throw new TimeStudyException("Operator with id "+id+" not found");
+		}
+		return response.get();
+	}
+
+	public TimeStudy updateLaps(TimeStudy study) throws TimeStudyException, OrderException {
+		TimeStudy getStudy = getById(study.getId());
+		getStudy.setLapsMS(study.getLapsMS());
+		return saveStudy(getStudy);
+	}
+
+
+	public void recalculateStudy(TimeStudy study) throws OrderException {
+	    saveStudy(study); // re-use internal logic
+	}
+
 }

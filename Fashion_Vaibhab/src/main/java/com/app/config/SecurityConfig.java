@@ -30,20 +30,20 @@ public class SecurityConfig {
 	
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		
-		return http
-			.csrf(customizer-> customizer.disable())
-			.authorizeHttpRequests(request-> request.
-					requestMatchers("/login","/register")
-					.permitAll()
-					.anyRequest().authenticated())
-			.httpBasic(Customizer.withDefaults())
-			.sessionManagement(session -> 
-				session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-			.build();
+	    return http
+	        .cors(Customizer.withDefaults()) // ✅ REQUIRED
+	        .csrf(customizer -> customizer.disable())
+	        .authorizeHttpRequests(request -> request
+	            .requestMatchers("/login", "/register").permitAll()
+	            .anyRequest().authenticated()
+	        )
+	        .httpBasic(Customizer.withDefaults())
+	        .sessionManagement(session ->
+	            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+	        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+	        .build();
 	}
-	
+
 	@Bean
 	public AuthenticationProvider authenticationProvider() {
 		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();

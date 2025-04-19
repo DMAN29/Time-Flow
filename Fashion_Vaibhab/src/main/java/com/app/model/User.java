@@ -23,6 +23,7 @@ public class User {
 	private String lastName;
 	private String email;
 	private List<Role> role;
+	private String company;
 	private String password;
 	private LocalDateTime createdAt;
 	

@@ -6,21 +6,29 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.app.exception.OrderException;
+import com.app.exception.UserException;
 import com.app.model.Order;
 import com.app.request.AllowanceRequest;
 import com.app.request.LaneRequest;
+import com.app.request.LapsCountRequest;
+import com.app.response.ApiResponse;
 import com.app.service.OrderService;
+
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/order")
@@ -29,10 +37,20 @@ public class OrderController {
 	@Autowired
 	private OrderService orderService;
 	
-	@PostMapping("")
-	public ResponseEntity<Order> createOrder(@RequestBody Order order) throws OrderException{
-		return new ResponseEntity<Order>(orderService.createOrder(order),HttpStatus.CREATED);
+	@PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<Order> createOrder(
+	    @RequestHeader("Authorization") String jwt,
+	    @RequestPart("order") Order order,
+	    @RequestPart("file") MultipartFile file
+	) throws OrderException, UserException, IOException {
+		System.out.println("Incoming Order: " + order);
+        System.out.println("Incoming File: " + file.getOriginalFilename());
+        System.out.println("Authorization Token: " + jwt);
+        
+	    return new ResponseEntity<>(orderService.createOrder(order, file, jwt), HttpStatus.CREATED);
 	}
+
+
 	
 	@GetMapping("")
 	public ResponseEntity<List<Order>> getAllOrder(){
@@ -49,18 +67,29 @@ public class OrderController {
 		return new ResponseEntity<Order>(orderService.getOrderByItemNo(itemNo),HttpStatus.OK);
 	}
 	
-	@PutMapping("/upload/{styleNo}")
-	public ResponseEntity<Order> updateOperations(@RequestParam("file") MultipartFile file,@PathVariable String styleNo) throws OrderException, IOException{
-        return new ResponseEntity<Order>(orderService.updateOperations(file,styleNo),HttpStatus.ACCEPTED);
-    }
-	
+//	@PutMapping("/upload/{styleNo}")
+//	public ResponseEntity<Order> updateOperations(@RequestParam("file") MultipartFile file,@PathVariable String styleNo) throws OrderException, IOException{
+//        return new ResponseEntity<Order>(orderService.updateOperations(file,styleNo),HttpStatus.ACCEPTED);
+//    }
+//	
 	@PutMapping("/allowance")
-	public ResponseEntity<String> updateAllowance(@RequestBody AllowanceRequest allowance) throws OrderException{
-		return new ResponseEntity<String>(orderService.updateAllowance(allowance),HttpStatus.ACCEPTED);
+	public ResponseEntity<ApiResponse> updateAllowance(@RequestBody AllowanceRequest allowance) throws OrderException{
+		return new ResponseEntity<ApiResponse>(new ApiResponse(orderService.updateAllowance(allowance)),HttpStatus.ACCEPTED);
 	}
 	
 	@PutMapping("/lane")
-	public ResponseEntity<String> updateLane(@RequestBody LaneRequest lane) throws OrderException{
-		return new ResponseEntity<String>(orderService.updateLane(lane),HttpStatus.ACCEPTED);
+	public ResponseEntity<ApiResponse> updateLane(@RequestBody LaneRequest lane) throws OrderException{
+		return new ResponseEntity<ApiResponse>(new ApiResponse(orderService.updateLane(lane)),HttpStatus.ACCEPTED);
+	}
+	
+	@PutMapping("/laps")
+	public ResponseEntity<ApiResponse> updateLapsCount(@RequestBody LapsCountRequest lap) throws OrderException{
+		return new ResponseEntity<ApiResponse>(new ApiResponse(orderService.updateLapsCount(lap)),HttpStatus.ACCEPTED);
+	}
+	
+	@DeleteMapping("/delete/{styleNo}")
+	public ResponseEntity<ApiResponse> deleteOrder(@PathVariable String styleNo,@RequestHeader("Authorization") String token) throws UserException, OrderException{
+		orderService.deleteOrder(styleNo,token);
+		return new ResponseEntity<ApiResponse>(new ApiResponse("Order deleted With Style No: "+styleNo),HttpStatus.OK);
 	}
 }

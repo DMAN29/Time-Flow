@@ -48,8 +48,8 @@ public class UserService {
 	    }
 	    user.setPassword(encoder.encode(user.getPassword()));
 	    List<Role> roles = new ArrayList<>();
-	    roles.add(Role.ROLE_USER);
-	    user.setRole(roles);
+//	    roles.add(Role.ROLE_USER);
+//	    user.setRole(roles);
 	    user.setCreatedAt(LocalDateTime.now());
 	    userRepo.save(user);
 	}
@@ -81,48 +81,78 @@ public class UserService {
 	}
 
 
-	public void changeRole(String token, String email) throws UserException {
-	    User admin = findUserProfileByJwt(token);
-	    
-	    if (!admin.getRole().contains(Role.ROLE_ADMIN)) {
-	        throw new UserException("Only Admin can Change Role");
-	    }
+	public void changeRole(String token, String email, Role newRole) throws UserException {
+	    User currentUser = findUserProfileByJwt(token);
+	    User targetUser = getUserByEmail(email);
 
-	    User user = getUserByEmail(email);
-
-	    if (user.getRole().contains(Role.ROLE_HEAD)) {
+	    // 🚫 Never allow changes to HEAD user
+	    if (targetUser.getRole().contains(Role.ROLE_HEAD)) {
 	        throw new UserException("Cannot change role of HEAD user");
 	    }
 
-	    if (!user.getRole().contains(Role.ROLE_ADMIN)) {
-	        user.getRole().add(Role.ROLE_ADMIN);
-	        userRepo.save(user);
+	    boolean isAdmin = currentUser.getRole().contains(Role.ROLE_ADMIN);
+	    boolean isHead = currentUser.getRole().contains(Role.ROLE_HEAD);
+
+	    if (!isAdmin && !isHead) {
+	        throw new UserException("Only ADMIN or HEAD can change roles");
 	    }
+
+	    // 🚫 Admin cannot update another Admin
+	    if (isAdmin && targetUser.getRole().contains(Role.ROLE_ADMIN)) {
+	        throw new UserException("Admin cannot change another Admin's role");
+	    }
+
+	    // 🚫 Admin cannot assign HEAD role
+	    if (isAdmin && newRole == Role.ROLE_HEAD) {
+	        throw new UserException("Admin cannot assign HEAD role");
+	    }
+
+	    // ✅ Head can change anyone (except existing HEADs, handled above)
+	    // ✅ Admin can promote USER to ADMIN
+	    targetUser.getRole().clear();
+	    targetUser.getRole().add(newRole);
+
+	    // Nested behavior
+	    if (newRole == Role.ROLE_ADMIN) {
+	        targetUser.getRole().add(Role.ROLE_USER); // Admin also gets USER role
+	    }
+
+	    userRepo.save(targetUser);
 	}
 
 
-	public void deleteUser(String token, String email) throws UserException {
-	    User admin = findUserProfileByJwt(token);  // User making the request
-	    User user = getUserByEmail(email);  // User to be deleted
 
-	    if (admin.getEmail().equals(user.getEmail())) {
+	public void deleteUser(String token, String email) throws UserException {
+	    // 🔐 Get the user who is making the request
+	    User admin = findUserProfileByJwt(token);
+
+	    // 👤 Get the user who is supposed to be deleted
+	    User user = getUserByEmail(email);
+
+	    // ⛔ Prevent a user from deleting themselves
+	    if (admin.getId().equals(user.getId())) {
 	        throw new UserException("You cannot delete yourself!");
 	    }
 
+	    // 👑 If HEAD, can delete anyone
 	    if (admin.getRole().contains(Role.ROLE_HEAD)) {
 	        userRepo.deleteById(user.getId());
 	        return;
 	    }
 
+	    // 🛡 If ADMIN
 	    if (admin.getRole().contains(Role.ROLE_ADMIN)) {
+	        // ❌ Can't delete another ADMIN or HEAD
 	        if (user.getRole().contains(Role.ROLE_ADMIN) || user.getRole().contains(Role.ROLE_HEAD)) {
 	            throw new UserException("Admins cannot delete other admins or heads!");
-	        } else {
-	            userRepo.deleteById(user.getId()); // Admin can delete users only
-	            return;
 	        }
+
+	        // ✅ Can delete normal users
+	        userRepo.deleteById(user.getId());
+	        return;
 	    }
 
+	    // ❌ No permission at all (e.g. ROLE_USER)
 	    throw new UserException("You do not have permission to delete users!");
 	}
 

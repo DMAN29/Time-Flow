@@ -7,8 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class OperatorRequest {
+public class LapsCountRequest {
 
-	private String operatorId;
 	private String styleNo;
+	private Integer noOfLaps;
+	
 }

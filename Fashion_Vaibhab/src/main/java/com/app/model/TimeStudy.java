@@ -30,7 +30,7 @@ public class TimeStudy {
 	private Integer capacityPD;
 	private String allowanceTime;
 	private String remarks;
-	private Double assigned; // 0.5 or 1
+//	private Double assigned; // 0.5 or 1
 }
 
 

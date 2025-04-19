@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.app.exception.UserException;
+import com.app.model.Role;
 import com.app.model.User;
+import com.app.response.ApiResponse;
 import com.app.service.UserService;
 
 @RestController
@@ -33,6 +35,7 @@ public class UserController {
 		return new ResponseEntity<>(userService.getAllUsers(jwt),HttpStatus.OK);
 	}
 	
+	
 	@GetMapping("/profile")
 	public ResponseEntity<User> getUserProfileHandler(@RequestHeader("Authorization") String jwt)throws UserException{
 		User user = userService.findUserProfileByJwt(jwt);
@@ -41,15 +44,15 @@ public class UserController {
 	
 
 	@PutMapping("/change-role")
-	public ResponseEntity<String> changeUserRole(@RequestHeader("Authorization")String jwt,@RequestParam String email) throws UserException{
-		userService.changeRole(jwt,email);
-		return new ResponseEntity<String>("Role Changed For Email : "+email,HttpStatus.ACCEPTED);
+	public ResponseEntity<ApiResponse> changeUserRole(@RequestHeader("Authorization")String jwt,@RequestParam String email,@RequestParam Role role) throws UserException{
+		userService.changeRole(jwt,email,role);
+		return new ResponseEntity<ApiResponse>(new ApiResponse("Role Changed For Email : "+email),HttpStatus.ACCEPTED);
 	}
 	
 	@DeleteMapping("/delete")
-	public ResponseEntity<String> deleteUser(@RequestHeader("Authorization")String jwt,@RequestParam String email) throws UserException{
+	public ResponseEntity<ApiResponse> deleteUser(@RequestHeader("Authorization")String jwt,@RequestParam String email) throws UserException{
 		userService.deleteUser(jwt,email);
-		return new ResponseEntity<String>("User deleted with email: "+email,HttpStatus.ACCEPTED);
+		return new ResponseEntity<ApiResponse>(new ApiResponse("User deleted with email: "+email),HttpStatus.ACCEPTED);
 	}
 	
 }

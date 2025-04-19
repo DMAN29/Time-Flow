@@ -3,6 +3,7 @@
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,9 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.app.exception.UserException;
 import com.app.model.User;
 import com.app.response.AuthResponse;
+import com.app.response.ApiResponse;
 import com.app.service.UserService;
 
 @RestController
+//@CrossOrigin(origins = "http://localhost:4200")
 public class UserAuthController {
 	
 	@Autowired
@@ -20,9 +23,9 @@ public class UserAuthController {
 	
 	
 	@PostMapping("/register")
-	public ResponseEntity<String> register(@RequestBody User user) throws UserException {
+	public ResponseEntity<ApiResponse> register(@RequestBody User user) throws UserException {
 		userService.createUser(user);
-		return new ResponseEntity<>("User Created Successfully",HttpStatus.CREATED);
+		return new ResponseEntity<>(new ApiResponse("User Created Successfully"),HttpStatus.CREATED);
 	}
 	
 	@PostMapping("/login")
