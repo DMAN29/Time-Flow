@@ -31,7 +31,7 @@ public class UserAuthController {
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@RequestBody User user) throws UserException {
 		String token = userService.verifyUser(user);
-		AuthResponse authResponse = new AuthResponse(	 user.getEmail(),token,"Signin Success");
+		AuthResponse authResponse = new AuthResponse(user.getEmail(),token,"Signin Success");
 		return new ResponseEntity<AuthResponse>(authResponse,HttpStatus.ACCEPTED);
 	}
 }
