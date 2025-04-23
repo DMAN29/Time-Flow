@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.AllArgsConstructor;
@@ -18,7 +19,11 @@ public class Order {
 
 	@Id
 	private String id;
+
+	@Indexed(unique =true)
 	private String styleNo;
+
+	@Indexed(unique =true)
 	private String itemNo;
 	private String description;
 	private String fabric;

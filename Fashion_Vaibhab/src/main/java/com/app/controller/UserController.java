@@ -28,31 +28,39 @@ public class UserController {
 
 	@Autowired
 	private UserService userService;
-	
-	
+
 	@GetMapping("")
-	public ResponseEntity<List<User>> getAllUsers(@RequestHeader("Authorization") String jwt) throws UserException{
-		return new ResponseEntity<>(userService.getAllUsers(jwt),HttpStatus.OK);
+	public ResponseEntity<List<User>> getAllUsers(@RequestHeader("Authorization") String jwt) throws UserException {
+		return new ResponseEntity<>(userService.getAllUsers(jwt), HttpStatus.OK);
 	}
-	
-	
+
 	@GetMapping("/profile")
-	public ResponseEntity<User> getUserProfileHandler(@RequestHeader("Authorization") String jwt)throws UserException{
+	public ResponseEntity<User> getUserProfileHandler(@RequestHeader("Authorization") String jwt) throws UserException {
 		User user = userService.findUserProfileByJwt(jwt);
-		return new ResponseEntity<User>(user,HttpStatus.OK);
+		return new ResponseEntity<User>(user, HttpStatus.OK);
 	}
-	
 
 	@PutMapping("/change-role")
-	public ResponseEntity<ApiResponse> changeUserRole(@RequestHeader("Authorization")String jwt,@RequestParam String email,@RequestParam Role role) throws UserException{
-		userService.changeRole(jwt,email,role);
-		return new ResponseEntity<ApiResponse>(new ApiResponse("Role Changed For Email : "+email),HttpStatus.ACCEPTED);
+	public ResponseEntity<ApiResponse> changeUserRole(@RequestHeader("Authorization") String jwt,
+			@RequestParam String email, @RequestParam Role role) throws UserException {
+		userService.changeRole(jwt, email, role);
+		return new ResponseEntity<ApiResponse>(new ApiResponse("Role Changed For Email : " + email),
+				HttpStatus.ACCEPTED);
 	}
-	
+
 	@DeleteMapping("/delete")
-	public ResponseEntity<ApiResponse> deleteUser(@RequestHeader("Authorization")String jwt,@RequestParam String email) throws UserException{
-		userService.deleteUser(jwt,email);
-		return new ResponseEntity<ApiResponse>(new ApiResponse("User deleted with email: "+email),HttpStatus.ACCEPTED);
+	public ResponseEntity<ApiResponse> deleteUser(@RequestHeader("Authorization") String jwt,
+			@RequestParam String email) throws UserException {
+		userService.deleteUser(jwt, email);
+		return new ResponseEntity<ApiResponse>(new ApiResponse("User deleted with email: " + email),
+				HttpStatus.ACCEPTED);
 	}
-	
+
+	@PutMapping("/pause-role")
+	public ResponseEntity<ApiResponse> pauseUserRole(@RequestHeader("Authorization") String jwt,
+			@RequestParam String email) throws UserException {
+		userService.pauseRole(jwt, email);
+		return new ResponseEntity<>(new ApiResponse("All roles paused for email: " + email), HttpStatus.ACCEPTED);
+	}
+
 }

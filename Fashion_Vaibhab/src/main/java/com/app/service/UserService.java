@@ -43,10 +43,14 @@ public class UserService {
 	}
 
 	public void createUser(User user) throws UserException {
-		Optional<User> existingUser = userRepo.findByEmail(user.getEmail());
-	    if (existingUser.isPresent()) {
-	        throw new UserException("User with this email already exists");
-	    }
+
+		if (userRepo.existsByEmail(user.getEmail())) {
+		    throw new UserException("Email already exists");
+		}
+		if (userRepo.existsByUserId(user.getUserId())) {
+		    throw new UserException("User ID already exists");
+		}
+
 	    user.setPassword(encoder.encode(user.getPassword()));
 	    List<Role> roles = new ArrayList<>();
 //	    roles.add(Role.ROLE_USER);
@@ -197,6 +201,47 @@ public class UserService {
 	public boolean companyHasUsers(String companyName) {
 	    return userRepo.existsByCompany(companyName);
 	}
+
+	public void pauseRole(String token, String email) throws UserException {
+	    User currentUser = findUserProfileByJwt(token);
+	    User targetUser = getUserByEmail(email);
+
+	    boolean isAdmin = currentUser.getRole().contains(Role.ROLE_ADMIN);
+	    boolean isHead = currentUser.getRole().contains(Role.ROLE_HEAD);
+
+	    // ❌ Neither Admin nor Head
+	    if (!isAdmin && !isHead) {
+	        throw new UserException("Only ADMIN or HEAD can pause roles");
+	    }
+
+	    // ❌ Cannot pause HEADs
+	    if (targetUser.getRole().contains(Role.ROLE_HEAD)) {
+	        throw new UserException("Cannot pause role of HEAD user");
+	    }
+
+	    // ❌ HEAD cannot pause themselves
+	    if (isHead && currentUser.getEmail().equalsIgnoreCase(email)) {
+	        throw new UserException("HEAD cannot pause their own role");
+	    }
+
+	    // ✅ HEAD can pause ADMIN and USER
+	    if (isHead) {
+	        targetUser.setRole(new ArrayList<>());
+	        userRepo.save(targetUser);
+	        return;
+	    }
+
+	    // ✅ ADMIN can pause only USER (not ADMIN or HEAD)
+	    if (isAdmin) {
+	        if (targetUser.getRole().contains(Role.ROLE_ADMIN) || targetUser.getRole().contains(Role.ROLE_HEAD)) {
+	            throw new UserException("Admin cannot pause Admin or Head");
+	        }
+
+	        targetUser.setRole(new ArrayList<>());
+	        userRepo.save(targetUser);
+	    }
+	}
+
 	
 	
 	
