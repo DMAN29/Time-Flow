@@ -15,7 +15,6 @@ import com.app.response.ApiResponse;
 import com.app.service.UserService;
 
 @RestController
-//@CrossOrigin(origins = "http://localhost:4200")
 public class UserAuthController {
 	
 	@Autowired
