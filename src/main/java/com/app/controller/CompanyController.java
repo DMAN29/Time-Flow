@@ -32,6 +32,7 @@ public class CompanyController {
 		return new ResponseEntity<Company>(companyService.addNewCompany(token,company),HttpStatus.CREATED);
 	}
 	
+	
 	@GetMapping("")
 	public ResponseEntity<List<Company>> getCompanyList(){
 		return new ResponseEntity<List<Company>>(companyService.getCompanyList(),HttpStatus.OK);
