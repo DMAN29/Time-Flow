@@ -2,14 +2,15 @@ package com.app.service;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -21,7 +22,6 @@ public class JwtService {
 
 	@Value("${jwt.secretkey}")
 	private String secretKey;
-
 	
 //	public JwtService() throws NoSuchAlgorithmException {
 //		KeyGenerator key = KeyGenerator.getInstance("HmacSHA256");
